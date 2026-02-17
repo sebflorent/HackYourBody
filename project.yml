@@ -22,6 +22,8 @@ settings:
     INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait"
     INFOPLIST_KEY_NSHealthShareUsageDescription: "Hack Your Body utilise vos données de santé pour suivre vos pas, votre sommeil, et votre poids afin de personnaliser votre programme."
     INFOPLIST_KEY_NSHealthUpdateUsageDescription: "Hack Your Body enregistre vos séances d'entraînement et votre poids dans Apple Health."
+    INFOPLIST_KEY_NSCameraUsageDescription: "Hack Your Body utilise la caméra pour prendre des photos de ta progression physique."
+    INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "Hack Your Body accède à ta galerie pour sélectionner des photos de progression."
 
 targets:
   HackYourBody:

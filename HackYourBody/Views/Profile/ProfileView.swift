@@ -118,6 +118,15 @@ struct ProfileView: View {
                     }
                 }
 
+                // Body tracking
+                Section("Suivi corporel") {
+                    NavigationLink {
+                        ProgressTabView()
+                    } label: {
+                        Label("Photos & Mensurations", systemImage: "person.crop.rectangle.stack")
+                    }
+                }
+
                 // Navigation
                 Section("Plus") {
                     NavigationLink {

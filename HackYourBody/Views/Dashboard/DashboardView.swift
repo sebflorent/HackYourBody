@@ -38,6 +38,9 @@ struct DashboardView: View {
                         WorkoutOfDayCard(program: program)
                     }
 
+                    // Body progress summary
+                    ProgressSummaryCard()
+
                     // HealthKit summary
                     HealthKitSummaryCard(
                         steps: vm.stepsToday,
