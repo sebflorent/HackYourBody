@@ -12,6 +12,7 @@ struct WorkoutTabView: View {
 
     @State private var vm = WorkoutViewModel()
     @State private var showProgramHistory = false
+    @State private var showPersonalRecords = false
 
     private var profile: UserProfile? { profiles.first }
     private var activeProgram: WorkoutProgram? { activePrograms.first }
@@ -38,6 +39,12 @@ struct WorkoutTabView: View {
                             Label("Nouveau programme IA", systemImage: "sparkles")
                         }
 
+                        Button {
+                            showPersonalRecords = true
+                        } label: {
+                            Label("Records personnels", systemImage: "trophy.fill")
+                        }
+
                         if allPrograms.count > 1 {
                             Button {
                                 showProgramHistory = true
@@ -52,6 +59,16 @@ struct WorkoutTabView: View {
             }
             .sheet(isPresented: $showProgramHistory) {
                 ProgramHistoryView(programs: allPrograms)
+            }
+            .sheet(isPresented: $showPersonalRecords) {
+                NavigationStack {
+                    PersonalRecordsView()
+                        .toolbar {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                Button("Fermer") { showPersonalRecords = false }
+                            }
+                        }
+                }
             }
             .overlay {
                 if vm.isGenerating {

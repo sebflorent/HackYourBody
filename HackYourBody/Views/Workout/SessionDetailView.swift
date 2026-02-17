@@ -37,7 +37,11 @@ struct SessionDetailView: View {
 
                 // Exercises
                 ForEach(session.exercises.sorted { $0.orderIndex < $1.orderIndex }) { exercise in
-                    ExerciseCard(exercise: exercise)
+                    NavigationLink {
+                        ExerciseHistoryView(exerciseName: exercise.exerciseName)
+                    } label: {
+                        ExerciseCard(exercise: exercise, showChevron: true)
+                    }
                 }
 
                 // Start workout button
@@ -109,6 +113,7 @@ struct SessionDetailView: View {
 
 struct ExerciseCard: View {
     let exercise: ExerciseSet
+    var showChevron: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -116,6 +121,7 @@ struct ExerciseCard: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(exercise.exerciseName)
                         .font(.headline)
+                        .foregroundStyle(.primary)
                     Text(exercise.muscleGroup)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -126,6 +132,12 @@ struct ExerciseCard: View {
                 if exercise.isCompleted {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(.green)
+                }
+
+                if showChevron {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.caption)
+                        .foregroundStyle(.blue)
                 }
             }
 

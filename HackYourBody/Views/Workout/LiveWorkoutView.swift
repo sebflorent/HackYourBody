@@ -5,6 +5,7 @@ struct LiveWorkoutView: View {
     @Environment(\.modelContext) private var modelContext
     let session: WorkoutSession
 
+    @State private var vm = WorkoutViewModel()
     @State private var currentExerciseIndex = 0
     @State private var currentSetIndex = 0
     @State private var restTimerActive = false
@@ -16,6 +17,11 @@ struct LiveWorkoutView: View {
     @State private var enteredReps: Int = 0
     @State private var showFinishConfirm = false
     @State private var completedSets: [String: [(weight: Double, reps: Int)]] = [:]
+    @State private var previousData: [String: [(setNumber: Int, weight: Double, reps: Int)]] = [:]
+
+    // PR celebration
+    @State private var showPRCelebration = false
+    @State private var prMessage = ""
 
     private var sortedExercises: [ExerciseSet] {
         session.exercises.sorted { $0.orderIndex < $1.orderIndex }
@@ -52,9 +58,9 @@ struct LiveWorkoutView: View {
         .onAppear {
             sessionStartTime = Date()
             startElapsedTimer()
+            loadPreviousData()
             if let ex = currentExercise {
-                enteredWeight = ex.weightKg
-                enteredReps = ex.targetReps
+                prefillFromPrevious(exercise: ex)
             }
         }
         .onDisappear {
@@ -62,9 +68,14 @@ struct LiveWorkoutView: View {
         }
         .confirmationDialog("Terminer la séance ?", isPresented: $showFinishConfirm) {
             Button("Terminer et sauvegarder", role: .destructive) {
-                finishSession()
+                Task { await finishSession() }
             }
             Button("Annuler", role: .cancel) { }
+        }
+        .overlay {
+            if showPRCelebration {
+                prCelebrationOverlay
+            }
         }
     }
 
@@ -112,10 +123,14 @@ struct LiveWorkoutView: View {
                 }
                 .padding(.top, 20)
 
+                // Previous session reference
+                if let prev = previousData[exercise.exerciseName], !prev.isEmpty {
+                    previousSessionCard(prev)
+                }
+
                 // Set indicator
                 HStack(spacing: 8) {
                     ForEach(0..<exercise.sets, id: \.self) { setIndex in
-                        let key = "\(exercise.exerciseName)-\(setIndex)"
                         let isDone = (completedSets[exercise.exerciseName]?.count ?? 0) > setIndex
                         Circle()
                             .fill(isDone ? .green : (setIndex == currentSetIndex ? .blue : .gray.opacity(0.3)))
@@ -233,6 +248,32 @@ struct LiveWorkoutView: View {
         }
     }
 
+    // MARK: - Previous Session Card
+
+    private func previousSessionCard(_ sets: [(setNumber: Int, weight: Double, reps: Int)]) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label("Séance précédente", systemImage: "clock.arrow.circlepath")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            ForEach(Array(sets.enumerated()), id: \.offset) { index, set in
+                HStack {
+                    Text("Série \(index + 1)")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text("\(set.weight.cleanString) kg x \(set.reps)")
+                        .font(.caption2)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.blue)
+                }
+            }
+        }
+        .padding(12)
+        .background(.blue.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .padding(.horizontal, 24)
+    }
+
     // MARK: - Rest Timer
 
     private var restTimerView: some View {
@@ -293,10 +334,46 @@ struct LiveWorkoutView: View {
                 .font(.title2)
                 .foregroundStyle(.secondary)
 
+            // Session summary
+            VStack(spacing: 8) {
+                let totalVolume = completedSets.values.flatMap { $0 }.reduce(0.0) { $0 + $1.weight * Double($1.reps) }
+                let totalSets = completedSets.values.reduce(0) { $0 + $1.count }
+
+                HStack(spacing: 24) {
+                    VStack {
+                        Text("\(Int(totalVolume))")
+                            .font(.title3.bold())
+                            .foregroundStyle(.blue)
+                        Text("kg volume")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    VStack {
+                        Text("\(totalSets)")
+                            .font(.title3.bold())
+                            .foregroundStyle(.green)
+                        Text("séries")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    VStack {
+                        Text("\(completedSets.keys.count)")
+                            .font(.title3.bold())
+                            .foregroundStyle(.orange)
+                        Text("exercices")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .padding()
+            .background(.regularMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+
             Button {
-                finishSession()
+                Task { await finishSession() }
             } label: {
-                Text("Sauvegarder")
+                Label("Sauvegarder", systemImage: "checkmark.circle.fill")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding()
@@ -306,16 +383,105 @@ struct LiveWorkoutView: View {
             }
             .padding(.horizontal, 24)
 
+            Text("La séance sera enregistrée dans Apple Santé")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+
             Spacer()
+        }
+    }
+
+    // MARK: - PR Celebration Overlay
+
+    private var prCelebrationOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.3)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    withAnimation { showPRCelebration = false }
+                }
+
+            VStack(spacing: 16) {
+                Image(systemName: "trophy.fill")
+                    .font(.system(size: 60))
+                    .foregroundStyle(.yellow)
+
+                Text("RECORD PERSONNEL !")
+                    .font(.title2)
+                    .fontWeight(.black)
+                    .foregroundStyle(.yellow)
+
+                Text(prMessage)
+                    .font(.headline)
+                    .multilineTextAlignment(.center)
+
+                Button {
+                    withAnimation { showPRCelebration = false }
+                } label: {
+                    Text("Continuer")
+                        .font(.headline)
+                        .padding(.horizontal, 32)
+                        .padding(.vertical, 12)
+                        .background(.yellow)
+                        .foregroundStyle(.black)
+                        .clipShape(Capsule())
+                }
+            }
+            .padding(32)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 24))
+            .padding(40)
+            .transition(.scale.combined(with: .opacity))
         }
     }
 
     // MARK: - Actions
 
+    private func loadPreviousData() {
+        for exercise in sortedExercises {
+            if let prev = vm.previousSessionData(for: exercise.exerciseName, modelContext: modelContext) {
+                previousData[exercise.exerciseName] = prev
+            }
+        }
+    }
+
+    private func prefillFromPrevious(exercise: ExerciseSet) {
+        // If there's previous data, prefill with last session's first set
+        if let prev = previousData[exercise.exerciseName], let first = prev.first {
+            enteredWeight = first.weight
+            enteredReps = first.reps
+        } else {
+            enteredWeight = exercise.weightKg
+            enteredReps = exercise.targetReps
+        }
+    }
+
     private func logSet(for exercise: ExerciseSet) {
         var sets = completedSets[exercise.exerciseName] ?? []
+        let setNumber = sets.count + 1
         sets.append((weight: enteredWeight, reps: enteredReps))
         completedSets[exercise.exerciseName] = sets
+
+        // Persist SetLog and check for PR
+        let pr = vm.logSetAndCheckPR(
+            exercise: exercise,
+            setNumber: setNumber,
+            weightKg: enteredWeight,
+            reps: enteredReps,
+            modelContext: modelContext
+        )
+
+        // Show PR celebration if new PR
+        if let pr = pr, let message = vm.lastPRMessage {
+            prMessage = "\(exercise.exerciseName)\n\(message)"
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                showPRCelebration = true
+            }
+            // Auto-dismiss after 2.5 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                withAnimation { showPRCelebration = false }
+            }
+        }
 
         if sets.count >= exercise.sets {
             // All sets done, save and move to next exercise
@@ -332,6 +498,12 @@ struct LiveWorkoutView: View {
             currentSetIndex = 0
         } else {
             currentSetIndex = sets.count
+            // Prefill next set: use previous session data if available
+            if let prev = previousData[exercise.exerciseName],
+               currentSetIndex < prev.count {
+                enteredWeight = prev[currentSetIndex].weight
+                enteredReps = prev[currentSetIndex].reps
+            }
             startRestTimer(seconds: exercise.restSeconds)
         }
     }
@@ -353,8 +525,7 @@ struct LiveWorkoutView: View {
                     if (completedSets[nextEx.exerciseName]?.count ?? 0) >= nextEx.sets {
                         currentExerciseIndex += 1
                         if let ex = currentExercise {
-                            enteredWeight = ex.weightKg
-                            enteredReps = ex.targetReps
+                            prefillFromPrevious(exercise: ex)
                         }
                     }
                 }
@@ -370,17 +541,21 @@ struct LiveWorkoutView: View {
             if (completedSets[ex.exerciseName]?.count ?? 0) >= ex.sets {
                 currentExerciseIndex += 1
                 if let nextEx = currentExercise {
-                    enteredWeight = nextEx.weightKg
-                    enteredReps = nextEx.targetReps
+                    prefillFromPrevious(exercise: nextEx)
                 }
             }
         }
     }
 
-    private func finishSession() {
-        session.isCompleted = true
-        session.completedAt = Date()
-        session.durationMinutes = Int(elapsedTime / 60)
+    private func finishSession() async {
+        let durationMinutes = Int(elapsedTime / 60)
+        await vm.finishSessionAndSaveToHealth(
+            session: session,
+            startTime: sessionStartTime,
+            durationMinutes: durationMinutes,
+            completedSets: completedSets,
+            modelContext: modelContext
+        )
         timer?.invalidate()
         dismiss()
     }

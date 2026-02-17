@@ -35,7 +35,8 @@ final class HealthKitService {
 
         let writeTypes: Set<HKSampleType> = [
             HKQuantityType(.activeEnergyBurned),
-            HKQuantityType(.bodyMass)
+            HKQuantityType(.bodyMass),
+            HKWorkoutType.workoutType()
         ]
 
         try await healthStore.requestAuthorization(toShare: writeTypes, read: readTypes)
@@ -204,6 +205,39 @@ final class HealthKitService {
             totalEnergyBurned: HKQuantity(unit: .kilocalorie(), doubleValue: calories),
             totalDistance: nil,
             metadata: nil
+        )
+        try await healthStore.save(workout)
+    }
+
+    /// Saves a strength training session to HealthKit with volume metadata
+    func saveStrengthWorkout(
+        startDate: Date,
+        durationMinutes: Int,
+        totalVolumeKg: Double,
+        exerciseCount: Int,
+        sessionName: String
+    ) async throws {
+        guard isAuthorized else { return }
+
+        let endDate = startDate.addingTimeInterval(Double(durationMinutes) * 60)
+        // Rough calorie estimate: ~5 kcal per minute of strength training
+        let estimatedCalories = Double(durationMinutes) * 5.0
+
+        let metadata: [String: Any] = [
+            HKMetadataKeyWorkoutBrandName: "Hack Your Body",
+            "SessionName": sessionName,
+            "TotalVolumeKg": totalVolumeKg,
+            "ExerciseCount": exerciseCount
+        ]
+
+        let workout = HKWorkout(
+            activityType: .traditionalStrengthTraining,
+            start: startDate,
+            end: endDate,
+            duration: Double(durationMinutes) * 60,
+            totalEnergyBurned: HKQuantity(unit: .kilocalorie(), doubleValue: estimatedCalories),
+            totalDistance: nil,
+            metadata: metadata
         )
         try await healthStore.save(workout)
     }

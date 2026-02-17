@@ -14,10 +14,14 @@ struct HackYourBodyApp: App {
             WorkoutProgram.self,
             WorkoutSession.self,
             ExerciseSet.self,
+            SetLog.self,
+            PersonalRecord.self,
             Recipe.self,
             MealPlan.self,
             PlannedMeal.self,
-            ChatMessage.self
+            ChatMessage.self,
+            ProgressPhoto.self,
+            BodyMeasurement.self
         ])
     }
 }

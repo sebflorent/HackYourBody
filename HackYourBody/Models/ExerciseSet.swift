@@ -13,6 +13,7 @@ final class ExerciseSet {
     var notes: String?
     var orderIndex: Int
     var session: WorkoutSession?
+    @Relationship(deleteRule: .cascade) var setLogs: [SetLog] = []
 
     init(
         exerciseName: String,

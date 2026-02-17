@@ -204,6 +204,36 @@ final class AIService {
         return try await sendChatRequest(systemPrompt: systemPrompt, userPrompt: userPrompt, model: chatModel)
     }
 
+    // MARK: - Stagnation Analysis
+
+    func analyzeStagnation(exerciseName: String, history: [(date: String, weight: Double, reps: Int, estimated1RM: Double)]) async throws -> StagnationAnalysis {
+        let systemPrompt = """
+        Tu es un coach musculation expert en programmation. Analyse l'historique d'un exercice et détecte la stagnation.
+        Réponds UNIQUEMENT avec du JSON valide, sans texte additionnel.
+        """
+
+        let historyStr = history.map { "\($0.date): \($0.weight)kg x \($0.reps) reps (1RM estimé: \($0.estimated1RM.cleanString)kg)" }.joined(separator: "\n")
+        let userPrompt = """
+        Exercice: \(exerciseName)
+        Historique des séances:
+        \(historyStr)
+
+        Analyse la progression et détecte si l'athlète stagne.
+        Format JSON:
+        {
+            "isStagnating": true/false,
+            "weeksSinceProgress": 0,
+            "severity": "none|mild|moderate|severe",
+            "analysis": "Explication courte de la situation",
+            "recommendations": ["Conseil 1", "Conseil 2", "Conseil 3"]
+        }
+        """
+
+        let response = try await sendChatRequest(systemPrompt: systemPrompt, userPrompt: userPrompt, model: chatModel)
+        let data = Data(response.utf8)
+        return try JSONDecoder().decode(StagnationAnalysis.self, from: data)
+    }
+
     // MARK: - Private API Call
 
     private func sendChatRequest(systemPrompt: String, userPrompt: String, model: String? = nil) async throws -> String {
@@ -333,6 +363,25 @@ struct MealPlanDTO: Codable {
     struct MealDTO: Codable {
         let mealType: String
         let recipe: RecipeDTO
+    }
+}
+
+// MARK: - Stagnation Analysis DTO
+
+struct StagnationAnalysis: Codable {
+    let isStagnating: Bool
+    let weeksSinceProgress: Int
+    let severity: String // "none", "mild", "moderate", "severe"
+    let analysis: String
+    let recommendations: [String]
+
+    var severityColor: String {
+        switch severity {
+        case "mild": return "yellow"
+        case "moderate": return "orange"
+        case "severe": return "red"
+        default: return "green"
+        }
     }
 }
 
