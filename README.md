@@ -25,20 +25,18 @@ The app leverages OpenAI's GPT-4o for intelligent content generation (workouts, 
 ## Screenshots
 
 <p align="center">
-  <img src="screenshots/dashboard.png" width="200" alt="Dashboard" />
-  <img src="screenshots/workout.png" width="200" alt="Workout" />
-  <img src="screenshots/live-workout.png" width="200" alt="Live Workout" />
-  <img src="screenshots/recipes.png" width="200" alt="Recipes" />
+  <img src="screenshots/dashboard.PNG" width="200" alt="Dashboard" />
+  <img src="screenshots/workout.PNG" width="200" alt="Workout" />
+  <img src="screenshots/live-workout.PNG" width="200" alt="Live Workout" />
+  <img src="screenshots/recipes.PNG" width="200" alt="Recipes" />
 </p>
 
 <p align="center">
-  <img src="screenshots/progress-photos.png" width="200" alt="Progress Photos" />
-  <img src="screenshots/measurements.png" width="200" alt="Measurements" />
-  <img src="screenshots/photo-compare.png" width="200" alt="Before/After" />
-  <img src="screenshots/checklist.png" width="200" alt="Checklist" />
+  <img src="screenshots/progress-photos.PNG" width="200" alt="Progress Photos" />
+  <img src="screenshots/measurements.PNG" width="200" alt="Measurements" />
+  <img src="screenshots/photo-compare.PNG" width="200" alt="Before/After" />
+  <img src="screenshots/checklist.PNG" width="200" alt="Checklist" />
 </p>
-
-> **Note:** Add your own screenshots to the `screenshots/` directory. Recommended names: `dashboard.png`, `workout.png`, `live-workout.png`, `recipes.png`, `progress-photos.png`, `measurements.png`, `photo-compare.png`, `checklist.png`.
 
 ## Features
 
